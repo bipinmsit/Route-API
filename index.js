@@ -26,9 +26,7 @@ app.get("/", (req, res) => {
 
     res.status(200).json({
       status: "Success",
-      data: {
-        pathList: routeAPI(fromId, toId),
-      },
+      pathList: routeAPI(fromId, toId),
     });
   } catch (e) {
     console.error("Something went wrong", e);
@@ -43,6 +41,27 @@ const getCoords = (name, arr) => {
   const coords = feat.geometry.coordinates;
 
   return coords;
+};
+
+const getSegment = (from, to, arr) => {
+  const index = arr.findIndex(
+    (line) =>
+      (line.properties.From === from && line.properties.To === to) ||
+      (line.properties.To === from && line.properties.From === to)
+  );
+  const feat = arr[index];
+
+  return {
+    type: feat.type,
+    geometry: feat.geometry,
+    properties: {
+      FromName: feat.properties.From,
+      ToName: feat.properties.To,
+      AWD_ID: feat.properties.AWD_ID,
+      FromPoint: feat.properties.PointFrom,
+      ToPoint: feat.properties.PointTo,
+    },
+  };
 };
 
 const getIndex = (name, arr) => {
@@ -317,16 +336,24 @@ const routeAPI = (fromAirId, toAirId) => {
   printAllPaths(fromAirId, toAirId);
   //   console.log(possiblePaths);
 
-  let possiblePathCoords = [];
+  let routeDetails = [];
+
   for (let i = 0; i < possiblePaths.length; i++) {
     let tempArr2 = [];
-    for (let j = 0; j < possiblePaths[i].length; j++) {
-      tempArr2.push(getCoords(possiblePaths[i][j], filteredPoints));
+    for (let j = 0; j < possiblePaths[i].length - 1; j++) {
+      tempArr2.push(
+        getSegment(
+          possiblePaths[i][j],
+          possiblePaths[i][j + 1],
+          finalFilteredLines()
+        )
+      );
     }
-    possiblePathCoords.push(tempArr2);
+    // routeDetails.push(tempArr2);
+    routeDetails.push({ routeId: `rid${i}`, routeDetails: tempArr2 });
   }
 
-  return possiblePathCoords;
+  return routeDetails;
 
   //   const flattenArray = [].concat.apply([], possiblePathCoords);
   // console.log(flattenArray);
